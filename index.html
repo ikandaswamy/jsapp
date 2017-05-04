@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>LIVE MAP SEARCH</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      /* 
+        Always set the map height explicitly to define the size of the div
+         element that contains the map. 
+      */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 70%;
+        margin: 5;
+        padding: 0;
+        margin-top: 100px;  
+      }
+    </style>
+  </head>
+  <body>
+
+  <h2>Live Search - Couchbase Style</h2>
+
+  Address <input type="text" id="addressText" value="">
+  Cuisine <input type="text" id="termText" value="">
+
+  <select name="radiusmenu" onChange="jumpto(document.form1.jumpmenu.options[document.form1.jumpmenu.options.selectedIndex].value)">
+  
+  <option>Jump to...</option>
+  <option value=http://www.quackit.com>Quackit Homepage</option>
+  <option value=http://www.quackit.com/javascript/>JavaScript</option>
+
+</select>
+
+  <button onclick="loadVal()">Submit</button>
+ 
+  <div id="lola"></div>
+  <div id="lola1"></div>
+ 
+  <div id="map"></div>
+  <script>
+    var map;
+
+    // This function gets the input values and calls function to make the REST call.
+    function loadVal() {
+        var addr_val = document.getElementById("addressText").value;
+        var term_val = document.getElementById("termText").value;
+        loadDoc(addr_val,term_val);
+    };
+
+   // Create the rest request that queries the yelp fusion app using my secret token.
+   // This query uses the yelp parameters localtion (for address) term (for cuisine/anything actually) and radius(for 
+   // radius of search).
+   // The radius needs to be a drop down menu since max value is 25.
+    function loadDoc(addrVal, termVal) {
+        var req_str = "select a.businesses[1] from curl(\"https://api.yelp.com/v3/businesses/search?term=" + escape(termVal) + "&location=" + escape(addrVal) + "\",{\"header\":\"Authorization: Bearer 3zRg4dAxXv6cQyOj4siJ9ZG3KPfkjW7b-IzfFuk7TF1mBRZ1m0t9TDuLiTf1q2OMdEU_Qlg1AE-AWti2bcetRSRhbh-Y_I2l8VFY-KtyqfYj6ivGfW9wlB0o4EUKWXYx\"}) a"
+
+        // Parse the JSON string to send REST API request
+        var json_req = JSON.stringify({"statement": req_str,"creds":[{"user":"Administrator","pass":"password"}]})
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            //var json = JSON.parse(this.responseText);
+            //var results = json.results;
+             //document.getElementById("lola1").innerHTML = json;
+             document.getElementById("lola").innerHTML = this.responseText;
+             myObj = JSON.parse(this.responseText);
+             var products = Object.keys(myObj).map(function(key) {
+              return myObj[key];
+             });
+             console.log(products);
+
+
+             //console.log(myObj.results[0]['$1'].coordinates);
+             console.log(window.$log = myObj.results[0]['$1'].coordinates);
+             document.getElementById("lola1").innerHTML = myObj.results[0]['$1'].coordinates;
+             
+
+            // document.write($log)
+             
+           console.log(myObj.results);
+     
+     /*   var obj = JSON.parse(this.responseText, function(name, value) {
+        // screen (e.g., based on name or typeof value)
+        if (name === 'edition') {
+            return undefined;
+        } 
+        if (name == 'results') {
+          return this.results[0]["$1"]
+        }
+        // otherwise return value
+        return value; 
+    }) ; */
+
+
+
+
+    //console.log(typeof(newr))
+
+
+           // initMap(results);
+          }
+        };
+
+      xhttp.open("POST", "http://localhost:8093/query/service" , true, "Administrator","password");
+      xhttp.setRequestHeader("Content-Type", "application/json");
+
+      xhttp.send(json_req);
+    };
+
+    // Function to draw map
+    function initMap(response_val) {  
+
+        // Process input results
+        //document.getElementById("lola1").innerHTML = response_val
+
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: -34.397, lng: 150.644},
+          mapTypeId: 'terrain',
+          zoom: 8
+        });
+
+        // Loop through the set of coordinates retrieved and display on the map.
+        var marker = new google.maps.Marker({
+          position: {lat: -34.397, lng: 150.644},
+          map: map
+        });
+      };
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJgCjdf0Qq8sD9WE7mWv0XVFpeMWUWm_k&callback=initMap"
+    async defer>
+      </script>
+  </body>
+</html>
+
+
