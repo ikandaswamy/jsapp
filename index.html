@@ -1,142 +1,224 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>LIVE MAP SEARCH</title>
-    <meta name="viewport" content="initial-scale=1.0">
-    <meta charset="utf-8">
-    <style>
+<head>
+<title>LIVE MAP SEARCH</title>
+<meta name="viewport" content="initial-scale=1.0">
+<meta charset="utf-8">
+<style>
       /* 
         Always set the map height explicitly to define the size of the div
          element that contains the map. 
       */
-      #map {
-        height: 100%;
-      }
-      /* Optional: Makes the sample page fill the window. */
-      html, body {
-        height: 70%;
-        margin: 5;
-        padding: 0;
-        margin-top: 100px;  
-      }
-    </style>
-  </head>
-  <body>
+#map {
+  height: 100%;
+}
 
-  <h2>Live Search - Couchbase Style</h2>
+header{
+    margin-bottom: 20px;
+    padding: 1em;
+    font-size: 1.5em;
+    color: white;
+    background-color: #4287d6;
+    clear: left;
+    text-align: center;
+}
 
-  Address <input type="text" id="addressText" value="">
-  Cuisine <input type="text" id="termText" value="">
+footer {
+  margin-top: 20px;
+   padding: 0.5em;
+    color: white;
+    background-color: #4287d6;
+    clear: left;
+    text-align: center;
+}
 
-  <select name="radiusmenu" onChange="jumpto(document.form1.jumpmenu.options[document.form1.jumpmenu.options.selectedIndex].value)">
+/* Optional: Makes the sample page fill the window. */
+html, body {
+  height: 80%;
+  margin: 5;
+  padding: 0;
+}
+</style>
+</head>
+<body>
+
+  <header>
+  <img src="images/logo.png" width="80" height="60" alt="logo" />
+  Live Search using Couchbase and N1QL CURL</header>
   
-  <option>Jump to...</option>
-  <option value=http://www.quackit.com>Quackit Homepage</option>
-  <option value=http://www.quackit.com/javascript/>JavaScript</option>
+  <p><b>Address</b> 
+  <input type="text" id="addressText" value=""> </p>
+  
+  <p><b>Search</b>
+  <input type="text" id="termText" value=""></p>
 
-</select>
+  <b>Radius of Search</b>
+  <select id="radiusmenu" 
+    onChange="getRadius()">
+
+    <option value=0></option>
+    <option value=5>5</option>
+    <option value=10>10</option>
+    <option value=15>15</option>
+    <option value=20>10</option>
+    <option value=25>25</option>
+
+  </select>
 
   <button onclick="loadVal()">Submit</button>
- 
-  <div id="lola"></div>
-  <div id="lola1"></div>
- 
+
+<br><br>
+
   <div id="map"></div>
   <script>
-    var map;
+      var map;
+      var map_data;
+      var a;
+      var markers = [];
 
-    // This function gets the input values and calls function to make the REST call.
-    function loadVal() {
+      function getRadius(){
+        a = document.getElementById('radiusmenu').value;
+      };
+
+      // This function gets the input values and calls function to make the REST call.
+      function loadVal() {
         var addr_val = document.getElementById("addressText").value;
         var term_val = document.getElementById("termText").value;
-        loadDoc(addr_val,term_val);
-    };
+        loadDoc(addr_val, term_val);
+      };
 
-   // Create the rest request that queries the yelp fusion app using my secret token.
-   // This query uses the yelp parameters localtion (for address) term (for cuisine/anything actually) and radius(for 
-   // radius of search).
-   // The radius needs to be a drop down menu since max value is 25.
-    function loadDoc(addrVal, termVal) {
-        var req_str = "select a.businesses[1] from curl(\"https://api.yelp.com/v3/businesses/search?term=" + escape(termVal) + "&location=" + escape(addrVal) + "\",{\"header\":\"Authorization: Bearer 3zRg4dAxXv6cQyOj4siJ9ZG3KPfkjW7b-IzfFuk7TF1mBRZ1m0t9TDuLiTf1q2OMdEU_Qlg1AE-AWti2bcetRSRhbh-Y_I2l8VFY-KtyqfYj6ivGfW9wlB0o4EUKWXYx\"}) a"
+      // Create the rest request that queries the yelp fusion app using my secret token.
+      // This query uses the yelp parameters localtion (for address) term (for cuisine/anything actually) and radius(for 
+      // radius of search).
+      // The radius needs to be a drop down menu since max value is 25.
+      if (a == 'null' || a == 0) {
+        console.log("ISHA")
+      }
+
+      function loadDoc(addrVal, termVal) {
+        var req_str = "select a.* from curl(\"https://api.yelp.com/v3/businesses/search?term="
+            + escape(termVal)
+            + "&location="
+            + escape(addrVal)
+            + "&radius="
+            + parseInt(a * 1609.34)
+            + "\",{\"header\":\"Authorization: Bearer 3zRg4dAxXv6cQyOj4siJ9ZG3KPfkjW7b-IzfFuk7TF1mBRZ1m0t9TDuLiTf1q2OMdEU_Qlg1AE-AWti2bcetRSRhbh-Y_I2l8VFY-KtyqfYj6ivGfW9wlB0o4EUKWXYx\"}) a"
+
+        console.log(req_str)
 
         // Parse the JSON string to send REST API request
-        var json_req = JSON.stringify({"statement": req_str,"creds":[{"user":"Administrator","pass":"password"}]})
+        var json_req = JSON.stringify({
+          "statement" : req_str,
+          "creds" : [ {
+            "user" : "Administrator",
+            "pass" : "password"
+          } ]
+        })
 
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            //var json = JSON.parse(this.responseText);
-            //var results = json.results;
-             //document.getElementById("lola1").innerHTML = json;
-             document.getElementById("lola").innerHTML = this.responseText;
-             myObj = JSON.parse(this.responseText);
-             var products = Object.keys(myObj).map(function(key) {
-              return myObj[key];
-             });
-             console.log(products);
+          if (this.readyState >= 3 && this.status == 200) {
+            // the response should have a "results" field that is an object with a
+            // "businesses" array and a "region" object
+            var response = JSON.parse(this.responseText);
 
+            // error checking
+            if (!response.results || !response.results.length) {
+              console.log("No results");
+              return;
+            }
+            
+            // there should only be one object in the result array
+            var result = response.results[0];
 
-             //console.log(myObj.results[0]['$1'].coordinates);
-             console.log(window.$log = myObj.results[0]['$1'].coordinates);
-             document.getElementById("lola1").innerHTML = myObj.results[0]['$1'].coordinates;
-             
+            // Clear markers
+            if (markers != []) {
+              for (var i = 0; i < markers.length; i++) {
+                  markers[i].setMap(null);
+               }
+            }
+            
+            // what should the center of the map be?
+            if (result.region && result.region.center) {
+              map.setCenter({lat:result.region.center.latitude,lng:result.region.center.longitude});
+              var marker = new google.maps.Marker({
+              position : {
+                  lat : result.region.center.latitude,
+                  lng : result.region.center.longitude
+                },
+                map : map
+              });
+              marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png')
+              markers.push(marker);
+            }
+              
+            // iterate over the array of businesses
+            if (result.businesses) for (var i=0; i < result.businesses.length; i++) {
+              var biz = result.businesses[i];
 
-            // document.write($log)
-             
-           console.log(myObj.results);
-     
-     /*   var obj = JSON.parse(this.responseText, function(name, value) {
-        // screen (e.g., based on name or typeof value)
-        if (name === 'edition') {
-            return undefined;
-        } 
-        if (name == 'results') {
-          return this.results[0]["$1"]
-        }
-        // otherwise return value
-        return value; 
-    }) ; */
-
-
-
-
-    //console.log(typeof(newr))
-
-
-           // initMap(results);
+            
+              // Create content to display when clicking on a marker. 
+              var contentString = '<div id="content">'+
+                                  '<p><b>'+ biz.name +'</b></p>'+
+                                  '<p>Phone No. :'+ biz.display_phone +'</p>'+
+                                  '<p><a href="'+biz.url+'">'+ biz.url + '</a></p>'+
+                                  '<p>Rating : '+ biz.rating +' Stars</p>'+
+                                  '</div>';
+              
+              addMarker(biz.coordinates.latitude,biz.coordinates.longitude, contentString)
+            } 
+          }
+          else {
+            // handle query errors here
+            console.log("Got readyState: " + this.readyState + ", status:" + this.status +
+                ", responseText: " + this.responseText);
           }
         };
 
-      xhttp.open("POST", "http://localhost:8093/query/service" , true, "Administrator","password");
-      xhttp.setRequestHeader("Content-Type", "application/json");
-
-      xhttp.send(json_req);
-    };
-
-    // Function to draw map
-    function initMap(response_val) {  
-
-        // Process input results
-        //document.getElementById("lola1").innerHTML = response_val
-
-        map = new google.maps.Map(document.getElementById('map'), {
-          center: {lat: -34.397, lng: 150.644},
-          mapTypeId: 'terrain',
-          zoom: 8
-        });
-
-        // Loop through the set of coordinates retrieved and display on the map.
-        var marker = new google.maps.Marker({
-          position: {lat: -34.397, lng: 150.644},
-          map: map
-        });
+        xhttp.open("POST", "http://localhost:8093/query/service", true,
+            "Administrator", "password");
+        xhttp.setRequestHeader("Content-Type", "application/json");
+        xhttp.send(json_req);
       };
 
+      function addMarker(lat, long, contentString) {
+
+         var infowindow = new google.maps.InfoWindow({
+          content: contentString
+          });
+
+            var marker = new google.maps.Marker({
+                position : {
+                  lat : lat,
+                  lng : long
+                },
+                map : map
+              });
+            marker.addListener('click', function() {
+              infowindow.open(map, marker);
+            });
+            markers.push(marker);
+      };
+
+      // Function to draw map
+      function initMap(response_val) {
+        // Initialize the Map to point to Australia.
+        map = new google.maps.Map(document.getElementById('map'), {
+          center : {
+            lat : -34.397,
+            lng : 150.644
+          },
+          mapTypeId : 'terrain',
+          zoom : 10
+        });
+
+      };
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJgCjdf0Qq8sD9WE7mWv0XVFpeMWUWm_k&callback=initMap"
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJgCjdf0Qq8sD9WE7mWv0XVFpeMWUWm_k&callback=initMap"
     async defer>
-      </script>
-  </body>
+      
+    </script>
+    <footer>Copyright © 2017 Couchbase, Inc. All rights reserved.</footer>
+</body>
 </html>
-
-
